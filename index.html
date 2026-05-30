@@ -204,24 +204,24 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); min-height: 10
   <div class="header">
     <div class="badge">AI-Powered</div>
     <h1>The Smart Quiz Maker</h1>
-    <p>Upload any document — get a teacher-quality quiz in seconds</p>
+    <p>Upload any document and get a teacher-quality quiz in seconds</p>
   </div>
 
   <!-- UPLOAD SCREEN -->
   <div id="screen-upload">
     <div class="card">
-      <div class="section-label">Step 1 — Upload your document</div>
+      <div class="section-label">Step 1: Upload your document</div>
       <div class="upload-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
         <i class="ti ti-file-upload"></i>
         <h3>Drop your document here</h3>
-        <p>PDF, TXT, DOCX, MD — or click to browse</p>
+        <p>PDF, TXT, DOCX, MD  ·  click to browse</p>
       </div>
       <input type="file" id="fileInput" accept=".pdf,.txt,.doc,.docx,.md">
       <div id="fileInfo"></div>
     </div>
 
     <div class="card">
-      <div class="section-label">Step 2 — How many questions?</div>
+      <div class="section-label">Step 2: How many questions?</div>
       <div class="qcount-row">
         <button class="qcount-btn" onclick="adjustCount(-1)">−</button>
         <input class="qcount-input" type="number" id="numQ" value="10" min="1" max="50">
@@ -239,13 +239,13 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); min-height: 10
     </div>
 
     <div class="card">
-      <div class="section-label">Step 3 — Choose question types (select all you want)</div>
+      <div class="section-label">Step 3: Choose question types</div>
       <div class="qtypes-grid" id="qtypesGrid">
         <div class="qtype-card selected" data-type="MC" onclick="toggleType(this)">
           <div class="qtype-icon" style="background:var(--green-bg);color:var(--green)"><i class="ti ti-list-check"></i></div>
           <div class="qtype-info">
             <h4>Multiple Choice</h4>
-            <p>4 options (A, B, C, D) — pick the right one</p>
+            <p>4 options (A, B, C, D), pick the right one</p>
           </div>
           <i class="ti ti-circle-check check"></i>
         </div>
@@ -269,7 +269,7 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); min-height: 10
           <div class="qtype-icon" style="background:var(--blue-bg);color:var(--blue)"><i class="ti ti-writing"></i></div>
           <div class="qtype-info">
             <h4>Essay</h4>
-            <p>Long-form response — AI grades & gives suggestions</p>
+            <p>Long-form response, AI grades and gives suggestions</p>
           </div>
           <i class="ti ti-circle-check check"></i>
         </div>
@@ -294,7 +294,7 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); min-height: 10
     </div>
 
     <div class="card">
-      <div class="section-label">Step 4 — Difficulty</div>
+      <div class="section-label">Step 4: Difficulty</div>
       <div class="diff-row">
         <button class="diff-btn" onclick="setDiff(this,'easy')">😊 Easy</button>
         <button class="diff-btn active" onclick="setDiff(this,'medium')">🎯 Medium</button>
@@ -429,7 +429,7 @@ async function extractPDF(file) {
       showReadingProgress(file, Math.round((end/total)*90));
     }
     let text = pages.join('\n').replace(/[ \t]+/g,' ').replace(/\n{3,}/g,'\n\n').trim();
-    if (text.length<80) { showError('Could not extract text — PDF may be scanned/image-based. Try .txt instead.'); document.getElementById('fileInfo').innerHTML=''; return; }
+    if (text.length<80) { showError('Could not extract text. The PDF may be scanned or image-based. Try .txt instead.'); document.getElementById('fileInfo').innerHTML=''; return; }
     fileContent = smartSample(text, MAX_AI_CHARS);
     showFileCard(file, `${total} pages · ${text.length.toLocaleString()} chars`);
     document.getElementById('generateBtn').disabled = false;
@@ -603,7 +603,7 @@ function renderQuiz() {
     const savedAnswers=userAnswers[currentQ]||{};
     html+=`<div class="match-grid"><div><div class="match-col-label">Column A</div>`;
     pairs.forEach((pair,i)=>{ html+=`<div class="match-item">${pair.left}</div>`; });
-    html+=`</div><div><div class="match-col-label">Column B — match each</div>`;
+    html+=`</div><div><div class="match-col-label">Column B: match each</div>`;
     pairs.forEach((pair,i)=>{
       const saved=savedAnswers[i]||'';
       let selCls='';
