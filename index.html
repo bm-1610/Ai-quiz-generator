@@ -609,7 +609,7 @@ function renderQuiz() {
       let selCls='';
       if(isChecked){ selCls=saved===pair.right?' correct-match':' wrong-match'; }
       html+=`<select class="match-select${selCls}" id="match_${i}" ${isChecked?'disabled':''} onchange="saveMatch()">
-        <option value="">— select —</option>
+        <option value="">select...</option>
         ${rights.map(r=>`<option value="${r}" ${saved===r?'selected':''}>${r}</option>`).join('')}
       </select>`;
     });
