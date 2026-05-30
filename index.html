@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Quiz Generator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #f5f4f0; --surface: #fff; --surface2: #f0efe9;
+  --border: rgba(0,0,0,0.12); --border2: rgba(0,0,0,0.22);
+  --text: #1a1a18; --text2: #6b6b67;
+  --purple: #534AB7; --purple-light: #EEEDFE; --purple-mid: #7F77DD; --purple-dark: #3C3489;
+  --green-bg: #E1F5EE; --green: #0F6E56; --green-dark: #085041;
+  --red-bg: #FAECE7; --red: #993C1D; --red-dark: #4A1B0C;
+  --amber-bg: #FAEEDA; --amber: #854F0B;
+  --blue-bg: #E8F0FE; --blue: #1A56DB;
+  --pink-bg: #FDE8F4; --pink: #9D1F6A;
+  --teal-bg: #E6F7F5; --teal: #0F766E;
+  --radius: 12px; --radius-lg: 16px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1a1a18; --surface: #242422; --surface2: #2e2e2b;
+    --border: rgba(255,255,255,0.1); --border2: rgba(255,255,255,0.2);
+    --text: #f0efe9; --text2: #9b9b96;
+    --purple-light: #2a2660; --green-bg: #0d3326; --red-bg: #3a1a10;
+    --amber-bg: #3a2800; --blue-bg: #0d1f4a; --pink-bg: #3a0d29; --teal-bg: #0a2826;
+  }
+}
+body { font-family: 'DM Sans', sans-serif; background: var(--bg); min-height: 100vh; color: var(--text); }
+.app { max-width: 780px; margin: 0 auto; padding: 2.5rem 1.5rem 5rem; }
+.header { text-align: center; margin-bottom: 2.5rem; }
+.badge { display: inline-block; background: var(--purple-light); color: var(--purple); font-size: 11px; font-weight: 500; padding: 4px 12px; border-radius: 20px; margin-bottom: 0.75rem; letter-spacing: 0.6px; text-transform: uppercase; }
+.header h1 { font-family: 'Playfair Display', serif; font-size: 2.4rem; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 0.5rem; }
+.header p { font-size: 15px; color: var(--text2); }
+.card { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 2rem; margin-bottom: 1.5rem; }
+.section-label { font-size: 12px; font-weight: 500; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
+
+/* Upload */
+.upload-zone { border: 1.5px dashed var(--border2); border-radius: var(--radius); padding: 2.5rem 2rem; text-align: center; cursor: pointer; transition: all 0.2s; background: var(--surface2); }
+.upload-zone:hover, .upload-zone.drag-over { border-color: var(--purple); background: var(--purple-light); }
+.upload-zone i { font-size: 40px; color: var(--purple); margin-bottom: 0.75rem; display: block; }
+.upload-zone h3 { font-size: 16px; font-weight: 500; margin-bottom: 0.3rem; }
+.upload-zone p { font-size: 13px; color: var(--text2); }
+#fileInput { display: none; }
+.file-selected { display: flex; align-items: center; gap: 12px; background: var(--purple-light); border: 0.5px solid var(--purple-mid); border-radius: 10px; padding: 1rem 1.25rem; margin-top: 1rem; }
+.file-selected i { font-size: 20px; color: var(--purple); }
+.file-selected .fname { font-size: 14px; font-weight: 500; color: var(--purple-dark); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-selected .fsize { font-size: 12px; color: var(--purple); white-space: nowrap; }
+
+/* Question count */
+.qcount-row { display: flex; align-items: center; gap: 10px; margin-bottom: 1.5rem; }
+.qcount-input { width: 90px; padding: 10px 12px; border: 0.5px solid var(--border2); border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 500; background: var(--surface); color: var(--text); text-align: center; }
+.qcount-btn { width: 36px; height: 36px; border: 0.5px solid var(--border2); border-radius: 8px; background: var(--surface2); cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; color: var(--text); transition: all 0.15s; }
+.qcount-btn:hover { background: var(--purple-light); border-color: var(--purple); color: var(--purple); }
+.qcount-presets { display: flex; gap: 6px; flex-wrap: wrap; }
+.preset-btn { padding: 6px 14px; border: 0.5px solid var(--border2); border-radius: 20px; background: var(--surface2); font-family: 'DM Sans', sans-serif; font-size: 13px; cursor: pointer; color: var(--text2); transition: all 0.15s; }
+.preset-btn:hover, .preset-btn.active { background: var(--purple-light); border-color: var(--purple); color: var(--purple); font-weight: 500; }
+
+/* Question types */
+.qtypes-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.qtype-card { border: 0.5px solid var(--border2); border-radius: 12px; padding: 14px; cursor: pointer; transition: all 0.15s; background: var(--surface2); display: flex; align-items: flex-start; gap: 12px; user-select: none; }
+.qtype-card:hover { border-color: var(--purple); background: var(--purple-light); }
+.qtype-card.selected { border-color: var(--purple); background: var(--purple-light); }
+.qtype-card .qtype-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+.qtype-card .qtype-info h4 { font-size: 14px; font-weight: 500; margin-bottom: 2px; }
+.qtype-card .qtype-info p { font-size: 12px; color: var(--text2); line-height: 1.4; }
+.qtype-card .check { margin-left: auto; font-size: 18px; color: var(--purple); opacity: 0; flex-shrink: 0; }
+.qtype-card.selected .check { opacity: 1; }
+
+/* Difficulty */
+.diff-row { display: flex; gap: 8px; }
+.diff-btn { flex: 1; padding: 10px; border: 0.5px solid var(--border2); border-radius: 8px; background: var(--surface2); font-family: 'DM Sans', sans-serif; font-size: 13px; cursor: pointer; color: var(--text2); transition: all 0.15s; text-align: center; }
+.diff-btn:hover { border-color: var(--purple); background: var(--purple-light); color: var(--purple); }
+.diff-btn.active { border-color: var(--purple); background: var(--purple-light); color: var(--purple); font-weight: 500; }
+
+/* Primary button */
+.btn-primary { width: 100%; padding: 14px; background: var(--purple); color: #fff; border: none; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 500; cursor: pointer; margin-top: 1.5rem; transition: background 0.2s, transform 0.1s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.btn-primary:hover { background: var(--purple-dark); }
+.btn-primary:active { transform: scale(0.98); }
+.btn-primary:disabled { background: var(--border2); cursor: not-allowed; }
+
+/* Loading */
+.loading-state { text-align: center; padding: 3rem 2rem; }
+.spinner { width: 48px; height: 48px; border: 3px solid #CECBF6; border-top-color: var(--purple); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 1.5rem; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-state h3 { font-size: 17px; font-weight: 500; margin-bottom: 0.4rem; }
+.loading-state p { font-size: 14px; color: var(--text2); }
+
+/* Quiz */
+.quiz-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+.quiz-header h2 { font-family: 'Playfair Display', serif; font-size: 1.3rem; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 70%; }
+.progress-bar-wrap { background: var(--surface2); border-radius: 99px; height: 6px; margin-bottom: 0.5rem; overflow: hidden; }
+.progress-bar-fill { height: 100%; background: linear-gradient(90deg, var(--purple), var(--purple-mid)); border-radius: 99px; transition: width 0.4s ease; }
+.q-counter { font-size: 13px; color: var(--text2); margin-bottom: 1.5rem; }
+.question-card { background: var(--surface); border: 0.5px solid var(--border); border-radius: 14px; padding: 1.75rem; margin-bottom: 1.25rem; animation: fadeUp 0.3s ease; }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.q-number { font-size: 11px; font-weight: 500; color: var(--purple-mid); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.6rem; }
+.q-type-badge { display: inline-block; font-size: 10px; font-weight: 500; padding: 2px 8px; border-radius: 20px; margin-left: 8px; text-transform: uppercase; letter-spacing: 0.4px; }
+.type-mc { background: var(--green-bg); color: var(--green); }
+.type-tf { background: var(--amber-bg); color: var(--amber); }
+.type-sa { background: var(--red-bg); color: var(--red); }
+.type-essay { background: var(--blue-bg); color: var(--blue); }
+.type-fill { background: var(--pink-bg); color: var(--pink); }
+.type-match { background: var(--teal-bg); color: var(--teal); }
+.q-text { font-size: 16px; font-weight: 500; line-height: 1.6; margin-bottom: 1.25rem; color: var(--text); }
+.options-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.option-btn { width: 100%; text-align: left; padding: 12px 16px; border: 0.5px solid var(--border2); border-radius: 10px; background: var(--surface2); font-family: 'DM Sans', sans-serif; font-size: 14px; cursor: pointer; transition: all 0.15s; color: var(--text); display: flex; align-items: center; gap: 10px; }
+.option-btn:hover:not(:disabled) { border-color: var(--purple); background: var(--purple-light); color: var(--purple-dark); }
+.option-btn.selected { border-color: var(--purple); background: var(--purple-light); color: var(--purple-dark); font-weight: 500; }
+.option-btn.correct { border-color: var(--green); background: var(--green-bg); color: var(--green-dark); }
+.option-btn.wrong { border-color: var(--red); background: var(--red-bg); color: var(--red); }
+.option-letter { width: 24px; height: 24px; border-radius: 50%; background: var(--border); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 500; flex-shrink: 0; }
+.answer-textarea { width: 100%; padding: 12px; border: 0.5px solid var(--border2); border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 14px; background: var(--surface2); color: var(--text); resize: vertical; line-height: 1.6; }
+.answer-textarea.short { min-height: 80px; }
+.answer-textarea.essay { min-height: 180px; }
+.char-count { font-size: 12px; color: var(--text2); text-align: right; margin-top: 4px; }
+
+/* Fill in blanks */
+.fill-input { border: none; border-bottom: 2px solid var(--purple); background: transparent; font-family: 'DM Sans', sans-serif; font-size: 15px; color: var(--text); padding: 2px 6px; min-width: 120px; outline: none; }
+.fill-input:focus { border-bottom-color: var(--purple-dark); }
+.fill-input.correct-fill { border-bottom-color: var(--green); color: var(--green-dark); }
+.fill-input.wrong-fill { border-bottom-color: var(--red); color: var(--red); }
+
+/* Matching */
+.match-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: start; }
+.match-col-label { font-size: 12px; font-weight: 500; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+.match-item { padding: 10px 14px; border: 0.5px solid var(--border2); border-radius: 8px; background: var(--surface2); font-size: 14px; margin-bottom: 8px; }
+.match-select { width: 100%; padding: 10px 12px; border: 0.5px solid var(--border2); border-radius: 8px; background: var(--surface2); font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--text); margin-bottom: 8px; cursor: pointer; }
+.match-select.correct-match { border-color: var(--green); background: var(--green-bg); color: var(--green-dark); }
+.match-select.wrong-match { border-color: var(--red); background: var(--red-bg); color: var(--red); }
+
+/* Feedback */
+.feedback-box { margin-top: 1rem; padding: 14px 16px; border-radius: 10px; font-size: 14px; line-height: 1.6; display: none; }
+.feedback-box.show { display: block; animation: fadeUp 0.25s ease; }
+.feedback-box.correct-fb { background: var(--green-bg); color: var(--green-dark); border-left: 3px solid var(--green); }
+.feedback-box.wrong-fb { background: var(--red-bg); color: var(--red-dark); border-left: 3px solid var(--red); }
+.feedback-box.neutral-fb { background: var(--purple-light); color: var(--purple-dark); border-left: 3px solid var(--purple); }
+.feedback-box.essay-fb { background: var(--blue-bg); color: #0d2a6e; border-left: 3px solid var(--blue); }
+.essay-score-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.essay-score-pill { display: inline-flex; align-items: center; gap: 5px; background: var(--purple); color: #fff; border-radius: 20px; padding: 3px 12px; font-size: 13px; font-weight: 500; }
+.essay-suggestions { margin-top: 10px; }
+.essay-suggestions h4 { font-size: 13px; font-weight: 500; margin-bottom: 6px; color: var(--blue); }
+.suggestion-item { display: flex; gap: 8px; margin-bottom: 6px; font-size: 13px; line-height: 1.5; }
+.suggestion-item::before { content: "→"; color: var(--blue); flex-shrink: 0; font-weight: 500; }
+.btn-check { margin-top: 1rem; padding: 10px 22px; background: var(--purple); color: #fff; border: none; border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; transition: background 0.15s; }
+.btn-check:hover { background: var(--purple-dark); }
+.btn-check:disabled { background: var(--border2); cursor: not-allowed; }
+.btn-check.grading { opacity: 0.7; cursor: wait; }
+
+/* Results */
+.results-card { text-align: center; padding: 2.5rem 2rem; }
+.score-circle { width: 130px; height: 130px; border-radius: 50%; background: var(--purple-light); border: 3px solid var(--purple); display: flex; flex-direction: column; align-items: center; justify-content: center; margin: 0 auto 1.5rem; }
+.score-num { font-family: 'Playfair Display', serif; font-size: 2.4rem; font-weight: 700; color: var(--purple-dark); line-height: 1; }
+.score-label { font-size: 12px; color: var(--purple); font-weight: 500; margin-top: 2px; }
+.results-card h2 { font-family: 'Playfair Display', serif; font-size: 1.7rem; margin-bottom: 0.5rem; }
+.results-card > p { font-size: 15px; color: var(--text2); margin-bottom: 1.5rem; }
+.stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 1.5rem 0; }
+.stat-box { background: var(--surface2); border-radius: 10px; padding: 14px 10px; text-align: center; }
+.stat-box .sv { font-size: 24px; font-weight: 500; }
+.stat-box .sl { font-size: 12px; color: var(--text2); margin-top: 2px; }
+.stat-box.s-correct .sv { color: #1D9E75; }
+.stat-box.s-wrong .sv { color: #D85A30; }
+.stat-box.s-total .sv { color: var(--purple); }
+.review-section { margin-top: 2rem; text-align: left; }
+.review-section h3 { font-size: 13px; font-weight: 500; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 1rem; border-top: 0.5px solid var(--border); padding-top: 1.25rem; }
+.review-item { padding: 12px 14px; border-radius: 10px; margin-bottom: 8px; font-size: 14px; }
+.review-item.ri-correct { background: var(--green-bg); border-left: 3px solid #1D9E75; }
+.review-item.ri-wrong { background: var(--red-bg); border-left: 3px solid #D85A30; }
+.review-item.ri-skipped { background: var(--surface2); border-left: 3px solid var(--border2); }
+.review-item.ri-essay { background: var(--blue-bg); border-left: 3px solid var(--blue); }
+.review-item .rq { font-weight: 500; color: var(--text); margin-bottom: 4px; }
+.review-item .ra { color: var(--text2); font-size: 13px; }
+.btn-restart { padding: 12px 32px; background: var(--purple); color: #fff; border: none; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 500; cursor: pointer; margin-top: 1rem; transition: background 0.15s; }
+.btn-restart:hover { background: var(--purple-dark); }
+.error-box { background: var(--red-bg); border: 0.5px solid #F0997B; border-radius: 10px; padding: 14px 16px; color: var(--red-dark); font-size: 14px; margin-top: 1rem; display: none; }
+.nav-btns { display: flex; justify-content: space-between; gap: 12px; margin-top: 0.5rem; }
+.btn-nav { padding: 10px 20px; border: 0.5px solid var(--border2); border-radius: 8px; background: var(--surface); font-family: 'DM Sans', sans-serif; font-size: 14px; cursor: pointer; color: var(--text); display: flex; align-items: center; gap: 6px; transition: all 0.15s; }
+.btn-nav:hover:not(:disabled) { background: var(--surface2); }
+.btn-nav:disabled { opacity: 0.35; cursor: not-allowed; }
+.btn-nav.finish { background: var(--purple); color: #fff; border-color: var(--purple); }
+.btn-nav.finish:hover { background: var(--purple-dark); }
+#screen-upload, #screen-loading, #screen-quiz, #screen-results { display: none; }
+#screen-upload { display: block; }
+.required-note { font-size: 12px; color: var(--red); margin-top: 8px; display: none; }
+.required-note.show { display: block; }
+@media (max-width: 540px) {
+  .app { padding: 1.5rem 1rem 4rem; }
+  .header h1 { font-size: 1.8rem; }
+  .qtypes-grid { grid-template-columns: 1fr; }
+  .match-grid { grid-template-columns: 1fr; }
+  .stats-row { gap: 8px; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div class="badge">AI-Powered</div>
+    <h1>The Smart Quiz Maker</h1>
+    <p>Upload any document — get a teacher-quality quiz in seconds</p>
+  </div>
+
+  <!-- UPLOAD SCREEN -->
+  <div id="screen-upload">
+    <div class="card">
+      <div class="section-label">Step 1 — Upload your document</div>
+      <div class="upload-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+        <i class="ti ti-file-upload"></i>
+        <h3>Drop your document here</h3>
+        <p>PDF, TXT, DOCX, MD — or click to browse</p>
+      </div>
+      <input type="file" id="fileInput" accept=".pdf,.txt,.doc,.docx,.md">
+      <div id="fileInfo"></div>
+    </div>
+
+    <div class="card">
+      <div class="section-label">Step 2 — How many questions?</div>
+      <div class="qcount-row">
+        <button class="qcount-btn" onclick="adjustCount(-1)">−</button>
+        <input class="qcount-input" type="number" id="numQ" value="10" min="1" max="50">
+        <button class="qcount-btn" onclick="adjustCount(1)">+</button>
+        <span style="font-size:13px;color:var(--text2)">questions</span>
+      </div>
+      <div class="qcount-presets">
+        <button class="preset-btn" onclick="setCount(5)">5</button>
+        <button class="preset-btn" onclick="setCount(10)">10</button>
+        <button class="preset-btn" onclick="setCount(15)">15</button>
+        <button class="preset-btn" onclick="setCount(20)">20</button>
+        <button class="preset-btn" onclick="setCount(30)">30</button>
+        <button class="preset-btn" onclick="setCount(50)">50</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-label">Step 3 — Choose question types (select all you want)</div>
+      <div class="qtypes-grid" id="qtypesGrid">
+        <div class="qtype-card selected" data-type="MC" onclick="toggleType(this)">
+          <div class="qtype-icon" style="background:var(--green-bg);color:var(--green)"><i class="ti ti-list-check"></i></div>
+          <div class="qtype-info">
+            <h4>Multiple Choice</h4>
+            <p>4 options (A, B, C, D) — pick the right one</p>
+          </div>
+          <i class="ti ti-circle-check check"></i>
+        </div>
+        <div class="qtype-card selected" data-type="TF" onclick="toggleType(this)">
+          <div class="qtype-icon" style="background:var(--amber-bg);color:var(--amber)"><i class="ti ti-toggle-right"></i></div>
+          <div class="qtype-info">
+            <h4>True / False</h4>
+            <p>Decide if a statement is true or false</p>
+          </div>
+          <i class="ti ti-circle-check check"></i>
+        </div>
+        <div class="qtype-card" data-type="SA" onclick="toggleType(this)">
+          <div class="qtype-icon" style="background:var(--red-bg);color:var(--red)"><i class="ti ti-message-2"></i></div>
+          <div class="qtype-info">
+            <h4>Short Answer</h4>
+            <p>1–2 sentence written response</p>
+          </div>
+          <i class="ti ti-circle-check check"></i>
+        </div>
+        <div class="qtype-card" data-type="ESSAY" onclick="toggleType(this)">
+          <div class="qtype-icon" style="background:var(--blue-bg);color:var(--blue)"><i class="ti ti-writing"></i></div>
+          <div class="qtype-info">
+            <h4>Essay</h4>
+            <p>Long-form response — AI grades & gives suggestions</p>
+          </div>
+          <i class="ti ti-circle-check check"></i>
+        </div>
+        <div class="qtype-card" data-type="FILL" onclick="toggleType(this)">
+          <div class="qtype-icon" style="background:var(--pink-bg);color:var(--pink)"><i class="ti ti-forms"></i></div>
+          <div class="qtype-info">
+            <h4>Fill in the Blanks</h4>
+            <p>Complete the sentence with the missing word</p>
+          </div>
+          <i class="ti ti-circle-check check"></i>
+        </div>
+        <div class="qtype-card" data-type="MATCH" onclick="toggleType(this)">
+          <div class="qtype-icon" style="background:var(--teal-bg);color:var(--teal)"><i class="ti ti-arrows-exchange"></i></div>
+          <div class="qtype-info">
+            <h4>Matching</h4>
+            <p>Match items from two columns</p>
+          </div>
+          <i class="ti ti-circle-check check"></i>
+        </div>
+      </div>
+      <div class="required-note" id="typeNote"><i class="ti ti-alert-circle"></i> Please select at least one question type.</div>
+    </div>
+
+    <div class="card">
+      <div class="section-label">Step 4 — Difficulty</div>
+      <div class="diff-row">
+        <button class="diff-btn" onclick="setDiff(this,'easy')">😊 Easy</button>
+        <button class="diff-btn active" onclick="setDiff(this,'medium')">🎯 Medium</button>
+        <button class="diff-btn" onclick="setDiff(this,'hard')">🔥 Hard</button>
+        <button class="diff-btn" onclick="setDiff(this,'mixed')">🎲 Mixed</button>
+      </div>
+    </div>
+
+    <div id="errorBox" class="error-box"></div>
+    <button class="btn-primary" id="generateBtn" disabled onclick="generateQuiz()">
+      <i class="ti ti-wand"></i> Generate Quiz
+    </button>
+  </div>
+
+  <!-- LOADING -->
+  <div id="screen-loading">
+    <div class="card loading-state">
+      <div class="spinner"></div>
+      <h3 id="loadingMsg">Analyzing your document...</h3>
+      <p>The AI teacher is crafting your quiz</p>
+    </div>
+  </div>
+
+  <!-- QUIZ -->
+  <div id="screen-quiz">
+    <div class="quiz-header">
+      <h2 id="quizTitle">Quiz</h2>
+      <span id="quizScore" style="font-size:13px;color:var(--text2)"></span>
+    </div>
+    <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progressBar" style="width:0%"></div></div>
+    <div class="q-counter" id="qCounter"></div>
+    <div id="questionsContainer"></div>
+    <div class="nav-btns">
+      <button class="btn-nav" id="prevBtn" onclick="navigate(-1)" disabled><i class="ti ti-arrow-left"></i> Previous</button>
+      <button class="btn-nav finish" id="nextBtn" onclick="navigate(1)">Next <i class="ti ti-arrow-right"></i></button>
+    </div>
+  </div>
+
+  <!-- RESULTS -->
+  <div id="screen-results">
+    <div class="card results-card">
+      <div class="score-circle"><div class="score-num" id="finalScore">0%</div><div class="score-label">Score</div></div>
+      <h2 id="resultTitle">Well done!</h2>
+      <p id="resultMsg"></p>
+      <div class="stats-row">
+        <div class="stat-box s-correct"><div class="sv" id="correctCount">0</div><div class="sl">Correct</div></div>
+        <div class="stat-box s-wrong"><div class="sv" id="wrongCount">0</div><div class="sl">Wrong</div></div>
+        <div class="stat-box s-total"><div class="sv" id="totalCount">0</div><div class="sl">Total</div></div>
+      </div>
+      <div class="review-section">
+        <h3>Review</h3>
+        <div id="reviewList"></div>
+      </div>
+      <button class="btn-restart" onclick="restart()"><i class="ti ti-refresh"></i> Try Another Quiz</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let fileContent = '', fileName = '';
+let questions = [], currentQ = 0;
+let userAnswers = {}, checkedAnswers = {}, essayFeedback = {};
+let selectedDiff = 'medium';
+
+const loadingMsgs = ['Analyzing your document...','Identifying key concepts...','Crafting smart questions...','Writing answer choices...','Preparing explanations...','Almost ready...'];
+
+const TYPE_LABELS = { MC:'Multiple Choice', TF:'True / False', SA:'Short Answer', ESSAY:'Essay', FILL:'Fill in the Blanks', MATCH:'Matching' };
+const TYPE_BADGE  = { MC:'type-mc', TF:'type-tf', SA:'type-sa', ESSAY:'type-essay', FILL:'type-fill', MATCH:'type-match' };
+
+function show(id) {
+  ['screen-upload','screen-loading','screen-quiz','screen-results'].forEach(s => {
+    document.getElementById(s).style.display = s === id ? 'block' : 'none';
+  });
+}
+
+// File handling
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('drag-over'); if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });
+fileInput.addEventListener('change', e => { if (e.target.files[0]) handleFile(e.target.files[0]); });
+
+const MAX_AI_CHARS = 28000;
+function fmtSize(b) { return b < 1048576 ? Math.round(b/1024)+' KB' : (b/1048576).toFixed(1)+' MB'; }
+
+function showFileCard(file, extra) {
+  document.getElementById('fileInfo').innerHTML = `<div class="file-selected"><i class="ti ti-file-text"></i><div class="fname">${file.name}</div><div class="fsize">${fmtSize(file.size)}${extra?' · '+extra:''}</div></div>`;
+}
+
+function showReadingProgress(file, pct) {
+  document.getElementById('fileInfo').innerHTML = `<div class="file-selected" style="flex-direction:column;align-items:flex-start;gap:8px"><div style="display:flex;align-items:center;gap:10px;width:100%"><i class="ti ti-loader-2" style="color:var(--purple);animation:spin 1s linear infinite;font-size:18px"></i><span class="fname" style="color:var(--purple-dark)">${file.name}</span><span class="fsize">${fmtSize(file.size)}</span></div><div style="width:100%;background:var(--border);border-radius:99px;height:4px;overflow:hidden"><div style="width:${pct}%;height:100%;background:var(--purple);border-radius:99px;transition:width 0.3s"></div></div><div style="font-size:12px;color:var(--text2)">Extracting text… ${Math.round(pct)}%</div></div>`;
+}
+
+function smartSample(text, max) {
+  if (text.length <= max) return text;
+  const s1=Math.floor(max*0.4), s2=Math.floor(max*0.3), s3=max-s1-s2;
+  const mid=Math.floor(text.length/2);
+  return text.slice(0,s1)+'\n\n[...middle section...]\n\n'+text.slice(mid-Math.floor(s2/2),mid+Math.floor(s2/2))+'\n\n[...later section...]\n\n'+text.slice(text.length-s3);
+}
+
+function handleFile(file) {
+  fileName = file.name;
+  const ext = file.name.split('.').pop().toLowerCase();
+  if (!['txt','md','pdf','doc','docx'].includes(ext)) { showError('Please upload TXT, MD, PDF, or DOCX.'); return; }
+  hideError(); showReadingProgress(file, 0);
+  if (ext==='pdf') extractPDF(file);
+  else if (['docx','doc'].includes(ext)) extractDOCX(file);
+  else {
+    const r = new FileReader();
+    r.onload = e => {
+      let text = (e.target.result||'').replace(/\r\n/g,'\n').replace(/\s+/g,' ').trim();
+      if (text.length<80) { showError('File too short or unreadable.'); return; }
+      fileContent = smartSample(text, MAX_AI_CHARS);
+      showFileCard(file, text.length.toLocaleString()+' chars');
+      document.getElementById('generateBtn').disabled = false;
+    };
+    r.readAsText(file);
+  }
+}
+
+async function extractPDF(file) {
+  try {
+    pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    const pdf = await pdfjsLib.getDocument({data: await file.arrayBuffer(), useWorkerFetch:false, isEvalSupported:false}).promise;
+    const total = pdf.numPages;
+    let pages = new Array(total);
+    for (let b=0; b<total; b+=10) {
+      const end=Math.min(b+10,total);
+      const res = await Promise.all(Array.from({length:end-b},(_,i)=>pdf.getPage(b+i+1).then(p=>p.getTextContent().then(c=>c.items.map(x=>x.hasEOL?x.str+'\n':x.str+' ').join('')))));
+      res.forEach((t,i)=>{pages[b+i]=t;});
+      showReadingProgress(file, Math.round((end/total)*90));
+    }
+    let text = pages.join('\n').replace(/[ \t]+/g,' ').replace(/\n{3,}/g,'\n\n').trim();
+    if (text.length<80) { showError('Could not extract text — PDF may be scanned/image-based. Try .txt instead.'); document.getElementById('fileInfo').innerHTML=''; return; }
+    fileContent = smartSample(text, MAX_AI_CHARS);
+    showFileCard(file, `${total} pages · ${text.length.toLocaleString()} chars`);
+    document.getElementById('generateBtn').disabled = false;
+  } catch(e) { showError('PDF error: '+e.message); document.getElementById('fileInfo').innerHTML=''; }
+}
+
+async function extractDOCX(file) {
+  try {
+    showReadingProgress(file,40);
+    const result = await mammoth.extractRawText({arrayBuffer: await file.arrayBuffer()});
+    showReadingProgress(file,90);
+    let text = result.value.replace(/\r\n/g,'\n').replace(/[ \t]+/g,' ').replace(/\n{3,}/g,'\n\n').trim();
+    if (text.length<80) { showError('Could not extract text from DOCX.'); document.getElementById('fileInfo').innerHTML=''; return; }
+    fileContent = smartSample(text, MAX_AI_CHARS);
+    showFileCard(file, text.length.toLocaleString()+' chars');
+    document.getElementById('generateBtn').disabled = false;
+  } catch(e) { showError('DOCX error: '+e.message); document.getElementById('fileInfo').innerHTML=''; }
+}
+
+// Question count
+function adjustCount(d) {
+  const el = document.getElementById('numQ');
+  el.value = Math.max(1, Math.min(50, parseInt(el.value||10)+d));
+  document.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('active'));
+}
+function setCount(n) {
+  document.getElementById('numQ').value = n;
+  document.querySelectorAll('.preset-btn').forEach(b=>{ b.classList.toggle('active', parseInt(b.textContent)===n); });
+}
+
+// Question types
+function toggleType(card) {
+  card.classList.toggle('selected');
+  document.getElementById('typeNote').classList.remove('show');
+}
+function getSelectedTypes() {
+  return [...document.querySelectorAll('.qtype-card.selected')].map(c=>c.dataset.type);
+}
+
+// Difficulty
+function setDiff(btn, val) {
+  selectedDiff = val;
+  document.querySelectorAll('.diff-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function showError(msg) { const b=document.getElementById('errorBox'); b.style.display='block'; b.innerHTML=`<i class="ti ti-alert-circle" style="margin-right:6px"></i>${msg}`; }
+function hideError() { document.getElementById('errorBox').style.display='none'; }
+
+async function generateQuiz() {
+  hideError();
+  const types = getSelectedTypes();
+  if (types.length === 0) { document.getElementById('typeNote').classList.add('show'); return; }
+  const numQ = parseInt(document.getElementById('numQ').value)||10;
+
+  show('screen-loading');
+  let mi=0;
+  const interval = setInterval(()=>{ mi=(mi+1)%loadingMsgs.length; document.getElementById('loadingMsg').textContent=loadingMsgs[mi]; }, 1800);
+
+  const typeInstructions = {
+    MC: `- Multiple choice (MC): 4 options A, B, C, D. Fields: type, question, options (array of 4 strings), answer (letter A/B/C/D), explanation`,
+    TF: `- True/False (TF): Fields: type, question, answer ("True" or "False"), explanation`,
+    SA: `- Short answer (SA): 1-2 sentence written answer. Fields: type, question, answer (model answer), explanation`,
+    ESSAY: `- Essay (ESSAY): Deep, paragraph-length response. Fields: type, question, answer (model answer with key points), rubric (array of 3-4 grading criteria strings)`,
+    FILL: `- Fill in the blanks (FILL): Sentence with one blank shown as ___. Fields: type, question (sentence with ___), answer (the missing word/phrase), explanation`,
+    MATCH: `- Matching (MATCH): Match items from column A to column B. Fields: type, question (topic description), pairs (array of {left, right} objects with 4-5 pairs), explanation`
+  };
+
+  const prompt = `You are an expert teacher. Based on the following document, create exactly ${numQ} quiz questions at ${selectedDiff} difficulty.
+
+Use ONLY these question types (distribute evenly among them):
+${types.map(t=>typeInstructions[t]).join('\n')}
+
+Rules:
+- Questions must test understanding of the document content
+- Cover different parts of the document
+- For hard/mixed: include analysis and application questions
+- Write clear, unambiguous questions like a real teacher
+
+Respond ONLY with a valid JSON array, no markdown, no preamble. Each object must have a "type" field matching exactly: ${types.join(', ')}.
+
+Document content:
+${fileContent}`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:6000, messages:[{role:'user',content:prompt}] })
+    });
+    clearInterval(interval);
+    if (!res.ok) { const e=await res.json(); throw new Error(e.error?.message||'API error '+res.status); }
+    const data = await res.json();
+    const raw = data.content.map(b=>b.text||'').join('');
+    let clean = raw.replace(/```json|```/g,'').trim();
+    const s=clean.indexOf('['), e=clean.lastIndexOf(']');
+    if (s===-1||e===-1) throw new Error('No valid JSON in response.');
+    questions = JSON.parse(clean.slice(s,e+1));
+    if (!Array.isArray(questions)||questions.length===0) throw new Error('No questions generated.');
+    currentQ=0; userAnswers={}; checkedAnswers={}; essayFeedback={};
+    renderQuiz(); show('screen-quiz');
+  } catch(e) { clearInterval(interval); show('screen-upload'); showError('Could not generate quiz: '+e.message); }
+}
+
+function renderQuiz() {
+  const q = questions[currentQ], total=questions.length;
+  document.getElementById('quizTitle').textContent = fileName.replace(/\.[^.]+$/,'');
+  document.getElementById('qCounter').textContent = `Question ${currentQ+1} of ${total}`;
+  document.getElementById('progressBar').style.width = ((currentQ+1)/total*100)+'%';
+  document.getElementById('quizScore').textContent = `${Object.keys(userAnswers).length}/${total} answered`;
+
+  let html = `<div class="question-card"><div class="q-number">Question ${currentQ+1} <span class="q-type-badge ${TYPE_BADGE[q.type]}">${TYPE_LABELS[q.type]}</span></div><div class="q-text">${q.question}</div>`;
+  const isChecked = checkedAnswers[currentQ];
+
+  if (q.type==='MC') {
+    html += `<ul class="options-list">`;
+    ['A','B','C','D'].forEach((letter,i) => {
+      const isSel=userAnswers[currentQ]===letter;
+      let cls='option-btn';
+      if(isChecked){ if(letter===q.answer)cls+=' correct'; else if(isSel)cls+=' wrong'; } else if(isSel) cls+=' selected';
+      const txt = q.options[i]?q.options[i].replace(/^[A-D]\.\s*/,''):'';
+      html+=`<li><button class="${cls}" ${isChecked?'disabled':''} onclick="selectMC('${letter}')"><span class="option-letter">${letter}</span>${txt}</button></li>`;
+    });
+    html+=`</ul>`;
+    if(!isChecked) html+=`<button class="btn-check" onclick="checkAnswer()" ${userAnswers[currentQ]?'':'disabled'}>Check Answer</button>`;
+
+  } else if (q.type==='TF') {
+    html+=`<ul class="options-list">`;
+    ['True','False'].forEach(opt=>{
+      const isSel=userAnswers[currentQ]===opt;
+      let cls='option-btn';
+      if(isChecked){ if(opt===q.answer)cls+=' correct'; else if(isSel)cls+=' wrong'; } else if(isSel) cls+=' selected';
+      const icon=opt==='True'?'ti-circle-check':'ti-circle-x';
+      html+=`<li><button class="${cls}" ${isChecked?'disabled':''} onclick="selectTF('${opt}')"><i class="ti ${icon}" style="font-size:18px"></i>${opt}</button></li>`;
+    });
+    html+=`</ul>`;
+    if(!isChecked) html+=`<button class="btn-check" onclick="checkAnswer()" ${userAnswers[currentQ]?'':'disabled'}>Check Answer</button>`;
+
+  } else if (q.type==='SA') {
+    const val=userAnswers[currentQ]||'';
+    html+=`<textarea class="answer-textarea short" id="answerInput" placeholder="Write your answer here..." ${isChecked?'disabled':''}>${val}</textarea>`;
+    if(!isChecked) html+=`<button class="btn-check" onclick="submitTextAnswer()">Submit & See Answer</button>`;
+
+  } else if (q.type==='ESSAY') {
+    const val=userAnswers[currentQ]||'';
+    html+=`<div style="font-size:13px;color:var(--text2);margin-bottom:8px">Write a detailed response. The AI will grade your essay and give you suggestions.</div>`;
+    html+=`<textarea class="answer-textarea essay" id="answerInput" placeholder="Write your essay here..." ${isChecked?'disabled':''}>${val}</textarea>`;
+    if(!isChecked) {
+      html+=`<div class="char-count" id="charCount">${val.length} characters</div>`;
+      html+=`<button class="btn-check" id="submitEssayBtn" onclick="submitEssay()">Submit Essay for Grading</button>`;
+    }
+    if(isChecked && essayFeedback[currentQ]) {
+      const fb=essayFeedback[currentQ];
+      html+=`<div class="feedback-box show essay-fb">
+        <div class="essay-score-row"><span class="essay-score-pill"><i class="ti ti-star-filled"></i> Score: ${fb.score}/10</span><strong>${fb.grade}</strong></div>
+        <div>${fb.overall}</div>
+        ${fb.suggestions&&fb.suggestions.length?`<div class="essay-suggestions"><h4><i class="ti ti-bulb"></i> Suggestions to improve:</h4>${fb.suggestions.map(s=>`<div class="suggestion-item">${s}</div>`).join('')}</div>`:''}
+        ${fb.strengths?`<div style="margin-top:10px;font-size:13px;color:var(--green-dark)"><strong>✓ Strengths:</strong> ${fb.strengths}</div>`:''}
+      </div>`;
+    }
+
+  } else if (q.type==='FILL') {
+    const val=userAnswers[currentQ]||'';
+    const parts=(q.question||'').split('___');
+    html=html.replace(`<div class="q-text">${q.question}</div>`,'');
+    html+=`<div class="q-text" style="margin-bottom:1rem">${parts[0]||''}<input class="fill-input${isChecked?(userAnswers[currentQ]&&userAnswers[currentQ].trim().toLowerCase()===q.answer.trim().toLowerCase()?' correct-fill':' wrong-fill'):''}" id="fillInput" type="text" placeholder="your answer" value="${val}" ${isChecked?'disabled':''}>${parts[1]||''}</div>`;
+    if(!isChecked) html+=`<button class="btn-check" onclick="submitFill()">Check Answer</button>`;
+
+  } else if (q.type==='MATCH') {
+    const pairs=q.pairs||[];
+    const rights=[...pairs.map(p=>p.right)].sort(()=>Math.random()-0.5);
+    const savedAnswers=userAnswers[currentQ]||{};
+    html+=`<div class="match-grid"><div><div class="match-col-label">Column A</div>`;
+    pairs.forEach((pair,i)=>{ html+=`<div class="match-item">${pair.left}</div>`; });
+    html+=`</div><div><div class="match-col-label">Column B — match each</div>`;
+    pairs.forEach((pair,i)=>{
+      const saved=savedAnswers[i]||'';
+      let selCls='';
+      if(isChecked){ selCls=saved===pair.right?' correct-match':' wrong-match'; }
+      html+=`<select class="match-select${selCls}" id="match_${i}" ${isChecked?'disabled':''} onchange="saveMatch()">
+        <option value="">— select —</option>
+        ${rights.map(r=>`<option value="${r}" ${saved===r?'selected':''}>${r}</option>`).join('')}
+      </select>`;
+    });
+    html+=`</div></div>`;
+    if(!isChecked) html+=`<button class="btn-check" onclick="submitMatch()">Check Answers</button>`;
+  }
+
+  // feedback for non-essay
+  if (isChecked && q.type!=='ESSAY') {
+    const isCorrect=isChecked==='correct';
+    const fbCls=q.type==='SA'||q.type==='FILL'||q.type==='MATCH'?'neutral-fb':(isCorrect?'correct-fb':'wrong-fb');
+    const icon=q.type==='SA'||q.type==='FILL'||q.type==='MATCH'?'ti-book':(isCorrect?'ti-circle-check':'ti-circle-x');
+    const title=q.type==='SA'?'Model Answer':q.type==='FILL'?`Answer: "${q.answer}"`:q.type==='MATCH'?'Correct Matches':(isCorrect?'Correct!':'Not quite');
+    let body='';
+    if(q.type==='SA') body=`<strong>${q.answer}</strong><br><em style="font-size:13px;opacity:0.75">${q.explanation}</em>`;
+    else if(q.type==='MATCH') { body=(q.pairs||[]).map(p=>`<strong>${p.left}</strong> → ${p.right}`).join(' &nbsp;|&nbsp; '); }
+    else body=q.explanation||'';
+    html+=`<div class="feedback-box show ${fbCls}"><strong><i class="ti ${icon}"></i> ${title}:</strong> ${body}</div>`;
+  }
+
+  html+=`</div>`;
+  document.getElementById('questionsContainer').innerHTML = html;
+
+  // char counter for essay
+  if(q.type==='ESSAY'&&!isChecked){
+    const ta=document.getElementById('answerInput');
+    if(ta) ta.addEventListener('input',()=>{ document.getElementById('charCount').textContent=ta.value.length+' characters'; userAnswers[currentQ]=ta.value; });
+  }
+
+  document.getElementById('prevBtn').disabled = currentQ===0;
+  document.getElementById('nextBtn').innerHTML = currentQ===questions.length-1
+    ? '<i class="ti ti-trophy"></i> Finish Quiz'
+    : 'Next <i class="ti ti-arrow-right"></i>';
+}
+
+function selectMC(l) { if(checkedAnswers[currentQ])return; userAnswers[currentQ]=l; renderQuiz(); document.querySelector('.btn-check')&&(document.querySelector('.btn-check').disabled=false); }
+function selectTF(v) { if(checkedAnswers[currentQ])return; userAnswers[currentQ]=v; renderQuiz(); document.querySelector('.btn-check')&&(document.querySelector('.btn-check').disabled=false); }
+function checkAnswer() { if(!userAnswers[currentQ])return; checkedAnswers[currentQ]=userAnswers[currentQ]===questions[currentQ].answer?'correct':'wrong'; renderQuiz(); }
+function submitTextAnswer() { const v=document.getElementById('answerInput')?.value.trim(); if(!v)return; userAnswers[currentQ]=v; checkedAnswers[currentQ]='neutral'; renderQuiz(); }
+function submitFill() { const v=document.getElementById('fillInput')?.value.trim(); if(!v)return; userAnswers[currentQ]=v; checkedAnswers[currentQ]=v.toLowerCase()===questions[currentQ].answer.trim().toLowerCase()?'correct':'wrong'; renderQuiz(); }
+function saveMatch() { const pairs=questions[currentQ].pairs||[]; const ans={}; pairs.forEach((_,i)=>{ const el=document.getElementById('match_'+i); if(el)ans[i]=el.value; }); userAnswers[currentQ]=ans; }
+function submitMatch() { saveMatch(); const pairs=questions[currentQ].pairs||[]; const ans=userAnswers[currentQ]||{}; const allCorrect=pairs.every((p,i)=>ans[i]===p.right); checkedAnswers[currentQ]=allCorrect?'correct':'wrong'; renderQuiz(); }
+
+async function submitEssay() {
+  const ta=document.getElementById('answerInput');
+  const text=ta?.value.trim();
+  if(!text||text.length<20) { alert('Please write at least a few sentences before submitting.'); return; }
+  userAnswers[currentQ]=text;
+  const btn=document.getElementById('submitEssayBtn');
+  if(btn){ btn.textContent='Grading your essay...'; btn.classList.add('grading'); btn.disabled=true; }
+
+  const q=questions[currentQ];
+  const gradingPrompt=`You are a strict but fair teacher grading a student's essay.
+
+Question: ${q.question}
+Model answer / key points: ${q.answer}
+${q.rubric?'Grading rubric:\n'+q.rubric.join('\n'):''}
+
+Student's essay:
+"${text}"
+
+Grade this essay and respond ONLY with a JSON object (no markdown):
+{
+  "score": <number 1-10>,
+  "grade": "<A/B/C/D/F with + or - if needed>",
+  "overall": "<2-3 sentence overall assessment>",
+  "strengths": "<what the student did well, 1-2 sentences>",
+  "suggestions": ["<specific suggestion 1>", "<specific suggestion 2>", "<specific suggestion 3>"]
+}`;
+
+  try {
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:gradingPrompt}]})
+    });
+    const data=await res.json();
+    const raw=data.content.map(b=>b.text||'').join('');
+    const clean=raw.replace(/```json|```/g,'').trim();
+    const s=clean.indexOf('{'),e=clean.lastIndexOf('}');
+    const fb=JSON.parse(clean.slice(s,e+1));
+    essayFeedback[currentQ]=fb;
+    checkedAnswers[currentQ]='essay';
+    renderQuiz();
+  } catch(err) {
+    essayFeedback[currentQ]={ score:'-', grade:'?', overall:'Could not grade essay automatically. Please review your work.', suggestions:[], strengths:'' };
+    checkedAnswers[currentQ]='essay';
+    renderQuiz();
+  }
+}
+
+function navigate(d) {
+  if(d===1&&currentQ===questions.length-1){ showResults(); return; }
+  currentQ=Math.max(0,Math.min(questions.length-1,currentQ+d));
+  renderQuiz();
+}
+
+function showResults() {
+  let correct=0,wrong=0;
+  const gradeable=questions.filter(q=>!['SA','ESSAY'].includes(q.type));
+  questions.forEach((q,i)=>{ if(['SA','ESSAY'].includes(q.type))return; if(checkedAnswers[i]==='correct')correct++; else wrong++; });
+  const pct=gradeable.length>0?Math.round(correct/gradeable.length*100):0;
+  document.getElementById('finalScore').textContent=pct+'%';
+  document.getElementById('correctCount').textContent=correct;
+  document.getElementById('wrongCount').textContent=wrong;
+  document.getElementById('totalCount').textContent=questions.length;
+  let title,msg;
+  if(pct>=90){title='Outstanding!';msg='You clearly mastered this material.';}
+  else if(pct>=75){title='Great job!';msg='You have a solid grasp of the topic.';}
+  else if(pct>=60){title='Good effort!';msg="A bit more review and you'll nail it.";}
+  else if(pct>=40){title='Keep going!';msg='Review the material and try again.';}
+  else{title='More study needed';msg='Go back to the document and review carefully.';}
+  document.getElementById('resultTitle').textContent=title;
+  document.getElementById('resultMsg').textContent=msg;
+  document.getElementById('reviewList').innerHTML=questions.map((q,i)=>{
+    let cls='ri-skipped',icon='ti-minus',ra='Not answered';
+    if(['SA'].includes(q.type)){ cls='ri-skipped'; icon='ti-pencil'; ra=userAnswers[i]?'Answered':'Not answered'; }
+    else if(q.type==='ESSAY'){
+      cls='ri-essay'; icon='ti-writing';
+      const fb=essayFeedback[i];
+      ra=fb?`Score: ${fb.score}/10 (${fb.grade})`:'Not submitted';
+    }
+    else if(checkedAnswers[i]==='correct'){cls='ri-correct';icon='ti-circle-check';ra=`Your answer: ${userAnswers[i]} · Correct: ${q.answer}`;}
+    else if(checkedAnswers[i]==='wrong'){cls='ri-wrong';icon='ti-circle-x';ra=`Your answer: ${userAnswers[i]||'none'} · Correct: ${q.answer}`;}
+    return `<div class="review-item ${cls}"><div class="rq"><i class="ti ${icon}" style="margin-right:6px"></i>${q.question}</div><div class="ra">${ra}</div></div>`;
+  }).join('');
+  show('screen-results');
+}
+
+function restart() {
+  fileContent='';fileName='';questions=[];userAnswers={};checkedAnswers={};essayFeedback={};currentQ=0;
+  document.getElementById('fileInfo').innerHTML='';
+  document.getElementById('generateBtn').disabled=true;
+  document.getElementById('fileInput').value='';
+  show('screen-upload');
+}
+</script>
+</body>
+</html>
